@@ -23,7 +23,7 @@ import org.eclipse.jface.viewers.Viewer;
 
 /**
  * ModelContent Provider used by the
- * {@link org.eclipse.emf.compare.ui2.viewers.StructuralDiffPane #getStrucDifftreeViewer()}. Assumes that its
+ * {@link org.eclipse.emf.compare.ui2.viewers.StructuralDiffPane #getTreeViewer()}. Assumes that its
  * input is a {@link Diff}.
  * 
  * @author <a href="mailto:bouanani.meher@obeo.fr">Bouanani Meher</a>

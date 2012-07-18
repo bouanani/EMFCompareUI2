@@ -14,10 +14,9 @@ import com.google.common.collect.Lists;
 
 import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.compare.Diff;
-import org.eclipse.emf.compare.DifferenceSource;
 import org.eclipse.emf.compare.Match;
 import org.eclipse.emf.compare.ui2.input.EMFCompareInput;
-import org.eclipse.emf.compare.ui2.providers.SelectedItemContentProvider;
+import org.eclipse.emf.compare.ui2.providers.StructureDiffPaneContentProvider;
 import org.eclipse.emf.compare.ui2.sync.EventHandler;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.edit.provider.ComposedAdapterFactory;
@@ -103,7 +102,7 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 	 * @param style
 	 *            the style of widget to construct
 	 */
-	public DiffViewPane(Composite parent, int style) {
+	public DiffViewPane(Composite parent, int style, EMFCompareEditor editor) {
 		super(parent, SWT.NONE);
 		setLayout(new FormLayout());
 		/**
@@ -171,7 +170,7 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 		if (((EMFCompareInput)input).getAncestor() != null) {
 			Notifier selectedItem = ((EMFCompareInput)input).getAncestor();
 			TreeViewer ancestorSide = ancestorView.getResourceTreeViewer();
-			ancestorSide.setContentProvider(new SelectedItemContentProvider(new ComposedAdapterFactory(
+			ancestorSide.setContentProvider(new StructureDiffPaneContentProvider(new ComposedAdapterFactory(
 					ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
 			ancestorSide.setLabelProvider(new AdapterFactoryLabelProvider(new ComposedAdapterFactory(
 					ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
@@ -188,8 +187,8 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 	private void setLeftSideInputProvider(IEditorInput input) {
 		Notifier selectedItem = ((EMFCompareInput)input).getLeft();
 		TreeViewer leftSideTreeViewer = leftView.getResourceTreeViewer();
-		leftSideTreeViewer.setContentProvider(new SelectedItemContentProvider(new ComposedAdapterFactory(
-				ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
+		leftSideTreeViewer.setContentProvider(new StructureDiffPaneContentProvider(
+				new ComposedAdapterFactory(ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
 		leftSideTreeViewer.setLabelProvider(new AdapterFactoryLabelProvider(new ComposedAdapterFactory(
 				ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
 		leftSideTreeViewer.setInput(Lists.newArrayList(selectedItem));
@@ -205,8 +204,8 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 	private void setRighSideInputProvider(IEditorInput input) {
 		Notifier selectedItem = ((EMFCompareInput)input).getRight();
 		TreeViewer rightSideTreeViewer = rightView.getResourceTreeViewer();
-		rightSideTreeViewer.setContentProvider(new SelectedItemContentProvider(new ComposedAdapterFactory(
-				ComposedAdapterFactory.Descriptor.Registry.Impl.INSTANCE)));
+		rightSideTreeViewer.setContentProvider(new StructureDiffPaneContentProvider(
+				new ComposedAdapterFactory(ComposedAdapterFactory.Descriptor.Registry.Impl.INSTANCE)));
 		rightSideTreeViewer.setLabelProvider(new AdapterFactoryLabelProvider(new ComposedAdapterFactory(
 				ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
 		rightSideTreeViewer.setInput(Lists.newArrayList(selectedItem));
@@ -233,8 +232,8 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 					IStructuredSelection newSelection = new StructuredSelection(match.getOrigin());
 					ancestorView.getResourceTreeViewer().setSelection(newSelection);
 				}
-				visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(false);
-				visualisationDiffToolBar.getCopyRightToLeft().setEnabled(false);
+				// visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(false);
+				// visualisationDiffToolBar.getCopyRightToLeft().setEnabled(false);
 			}
 			if (selected instanceof Diff) {
 				Diff diff = (Diff)selected;
@@ -250,47 +249,47 @@ public class DiffViewPane extends Composite implements ISelectionChangedListener
 					IStructuredSelection newSelection = new StructuredSelection(diff.getMatch().getOrigin());
 					ancestorView.getResourceTreeViewer().setSelection(newSelection);
 				}
-				handleCopyActionVisiblity(diff);
+				// handleCopyActionVisiblity(diff);
 			}
 		}
 	}
 
-	/**
-	 * Handle the availability Copy(LToR||RToL).
-	 * 
-	 * @param difference
-	 *            the selected difference from the TreeViewer.
-	 */
-	public void handleCopyActionVisiblity(Diff difference) {
-		if (difference.getSource().equals(DifferenceSource.RIGHT)) {
-			updateCopyActions(difference, true);
-		} else if (difference.getSource().equals(DifferenceSource.LEFT)) {
-			updateCopyActions(difference, false);
-		} else {
-			visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(false);
-			visualisationDiffToolBar.getCopyRightToLeft().setEnabled(false);
-		}
-	}
-
-	/**
-	 * Update copy Actins (CopyLeftTorRight|copyRightToLeft).
-	 * 
-	 * @param difference
-	 *            the difference element
-	 * @param isRight
-	 *            if source is Right so true , else if source is Left so false
-	 */
-	public void updateCopyActions(Diff difference, boolean isRight) {
-		if (isRight) {
-			visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(isRight);
-			visualisationDiffToolBar.getCopyRightToLeft().setEnabled(!isRight);
-			visualisationDiffToolBar.getCopyLeftTorRight().setCurrentSelection(difference);
-		} else if (!isRight) {
-			visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(isRight);
-			visualisationDiffToolBar.getCopyRightToLeft().setEnabled(!isRight);
-			visualisationDiffToolBar.getCopyRightToLeft().setCurrentSelection(difference);
-		}
-	}
+	// /**
+	// * Handle the availability Copy(LToR||RToL).
+	// *
+	// * @param difference
+	// * the selected difference from the TreeViewer.
+	// */
+	// public void handleCopyActionVisiblity(Diff difference) {
+	// if (difference.getSource().equals(DifferenceSource.RIGHT)) {
+	// updateCopyActions(difference, true);
+	// } else if (difference.getSource().equals(DifferenceSource.LEFT)) {
+	// updateCopyActions(difference, false);
+	// } else {
+	// visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(false);
+	// visualisationDiffToolBar.getCopyRightToLeft().setEnabled(false);
+	// }
+	// }
+	//
+	// /**
+	// * Update copy Actins (CopyLeftTorRight|copyRightToLeft).
+	// *
+	// * @param difference
+	// * the difference element
+	// * @param isRight
+	// * if source is Right so true , else if source is Left so false
+	// */
+	// public void updateCopyActions(Diff difference, boolean isRight) {
+	// if (isRight) {
+	// visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(isRight);
+	// visualisationDiffToolBar.getCopyRightToLeft().setEnabled(!isRight);
+	// visualisationDiffToolBar.getCopyLeftTorRight().setCurrentSelection(difference);
+	// } else if (!isRight) {
+	// visualisationDiffToolBar.getCopyLeftTorRight().setEnabled(isRight);
+	// visualisationDiffToolBar.getCopyRightToLeft().setEnabled(!isRight);
+	// visualisationDiffToolBar.getCopyRightToLeft().setCurrentSelection(difference);
+	// }
+	// }
 
 	@Override
 	protected void checkSubclass() {

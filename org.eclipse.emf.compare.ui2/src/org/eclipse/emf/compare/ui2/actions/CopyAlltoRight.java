@@ -51,24 +51,23 @@ public class CopyAlltoRight extends AbstractEMFCompareAction {
 		boolean changed = false;
 		editorView = (EMFCompareEditor)Utilities.getEditorPart();
 		List<Diff> differences = Lists.newArrayList();
-		differences = ((EMFCompareInput)editorView.getInput()).getComparison().getDifferences();
+		differences = ((EMFCompareInput)editorView.getEditorInput()).getComparison().getDifferences();
 		for (Diff diff : differences) {
 			if (diff.getConflict() == null && diff.getState().equals(DifferenceState.UNRESOLVED)) {
 				diff.copyLeftToRight();
 				changed = true;
 				System.out.println("DONE");
-			}
-			else {
+			} else {
 				System.out.println("Conflict has been found");
 			}
 		}
 		if (changed) {
 			editorView.fireDirtyPropertyChange(true);
 			editorView.setLeftDirty(true);
-			editorView.getStructuralView().getStrucDifftreeViewer().refresh();
+			editorView.getStructDiffViewPane().getTreeViewer().refresh();
 			setEnabled(false);
-			editorView.getVisualisationDiffView().getVisualisationDiffToolBar().getCopyAlltoLeft()
-					.setEnabled(false);
+			editorView.getDifferenceViewPane().getVisualisationDiffToolBar().getCopyAlltoLeft().setEnabled(
+					false);
 		}
 	}
 

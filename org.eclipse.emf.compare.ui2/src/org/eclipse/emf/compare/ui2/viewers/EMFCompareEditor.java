@@ -14,19 +14,27 @@ package org.eclipse.emf.compare.ui2.viewers;
 import com.google.common.collect.Maps;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ListIterator;
 
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.emf.compare.Comparison;
+import org.eclipse.emf.compare.Diff;
+import org.eclipse.emf.compare.ui2.actions.menu.filtering.DifferenceFilter;
+import org.eclipse.emf.compare.ui2.actions.menu.grouping.DifferenceGroupProvider;
 import org.eclipse.emf.compare.ui2.input.EMFCompareInput;
 import org.eclipse.emf.compare.ui2.sync.SelectionEventBroker;
 import org.eclipse.emf.compare.ui2.utilities.Utilities;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.PartInitException;
@@ -47,26 +55,26 @@ public class EMFCompareEditor extends EditorPart {
 	/**
 	 * SelectionEvent Broker.
 	 */
-	private SelectionEventBroker broker = new SelectionEventBroker();
-
-	/**
-	 * The Editor's Input.
-	 */
-	private IEditorInput input;
+	private SelectionEventBroker eventBroker = new SelectionEventBroker();
 
 	/**
 	 * The StructuralDiffView component.
 	 * 
 	 * @see StructViewPane
 	 */
-	private StructuralDiffPane structuralView;
+	private StructuralDiffPane structDifferencePane;
+
+	/**
+	 * The difference filter to be applied on our viewers.
+	 */
+	private final DifferenceFilter differenceFilter = new DifferenceFilter();
 
 	/**
 	 * The VisualisationDiffView component.
 	 * 
 	 * @see DiffViewPane
 	 */
-	private DiffViewPane visualisationDiffView;
+	private DiffViewPane diffViewPane;
 
 	/**
 	 * Changes when there is a change on the editor ;
@@ -76,6 +84,8 @@ public class EMFCompareEditor extends EditorPart {
 	private boolean fIsLeftDirty;
 
 	private boolean fIsRightDirty;
+
+	private Diff currentDifference;
 
 	/**
 	 * Constructor.
@@ -104,23 +114,47 @@ public class EMFCompareEditor extends EditorPart {
 		fdSashForm.bottom = new FormAttachment(100);
 		fdSashForm.right = new FormAttachment(100);
 		sashForm.setLayoutData(fdSashForm);
-		structuralView = new StructuralDiffPane(sashForm, SWT.NONE);
-		Tree tree = structuralView.getStrucDifftreeViewer().getTree();
-		FormData structuralFormView = new FormData();
-		structuralFormView.top = new FormAttachment(structuralView.getTooBar(), 6);
-		structuralFormView.right = new FormAttachment(100);
-		structuralFormView.bottom = new FormAttachment(100);
-		structuralFormView.left = new FormAttachment(structuralView.getTooBar(), 0, SWT.LEFT);
-		tree.setLayoutData(structuralFormView);
-		visualisationDiffView = new DiffViewPane(sashForm, SWT.NONE);
-		// Set the input provider of the views
-		structuralView.setInputProvider(input);
-		visualisationDiffView.setInputProvider(input);
-		// Register the EMFCompareEditor as selection Listner
-		broker.addSelectionProvider(structuralView.getStrucDifftreeViewer());
-		broker.addSelectionChangedListener(visualisationDiffView);
-		Utilities.registerStructuralView(structuralView);
+		createStructDiffPane(sashForm);
+		createDifferenceViewPane(sashForm);
+		eventBroker.addSelectionProvider(structDifferencePane.getTreeViewer());
+		eventBroker.addSelectionChangedListener(diffViewPane);
+		eventBroker.addSelectionChangedListener(new ISelectionChangedListener() {
+
+			public void selectionChanged(SelectionChangedEvent event) {
+				if (event.getSelection() instanceof StructuredSelection) {
+					Object selectedElement = ((StructuredSelection)event.getSelection()).getFirstElement();
+					if (selectedElement instanceof Diff) {
+						currentDifference = (Diff)selectedElement;
+					}
+				}
+			}
+		});
+		Utilities.registerStructuralView(structDifferencePane);
 		sashForm.setWeights(new int[] {1, 3 });
+	}
+
+	/**
+	 * Creates a StructuralDiffViewPane in order to visualise the sutructural differences between the
+	 * elements.
+	 * 
+	 * @param structDiffContainer
+	 *            the container of the Pane.
+	 */
+	public void createStructDiffPane(SashForm structDiffContainer) {
+		structDifferencePane = new StructuralDiffPane(structDiffContainer, this, getComparison());
+		differenceFilter.install(structDifferencePane.getTreeViewer());
+
+	}
+
+	/**
+	 * Creates a difference View Pane {@linkplain DiffViewPane}
+	 * 
+	 * @param diffPaneContainer
+	 *            the difference view pane container.
+	 */
+	public void createDifferenceViewPane(SashForm diffPaneContainer) {
+		diffViewPane = new DiffViewPane(diffPaneContainer, SWT.NONE);
+		diffViewPane.setInputProvider(getEditorInput());
 	}
 
 	@Override
@@ -131,8 +165,8 @@ public class EMFCompareEditor extends EditorPart {
 	public void doSave(IProgressMonitor monitor) {
 		fireDirtyPropertyChange(false);
 		if (fIsRightDirty) {
-			if (((EMFCompareInput)input).getRight() instanceof Resource) {
-				Resource rightResource = (Resource)((EMFCompareInput)input).getRight();
+			if (((EMFCompareInput)getEditorInput()).getRight() instanceof Resource) {
+				Resource rightResource = (Resource)((EMFCompareInput)getEditorInput()).getRight();
 				try {
 					rightResource.save(Maps.newConcurrentMap());
 				} catch (IOException e) {
@@ -148,8 +182,7 @@ public class EMFCompareEditor extends EditorPart {
 	}
 
 	@Override
-	public void init(IEditorSite site, IEditorInput inputs) throws PartInitException {
-		this.input = inputs;
+	public void init(IEditorSite site, IEditorInput input) throws PartInitException {
 		super.setSite(site);
 		super.setInput(input);
 	}
@@ -162,10 +195,6 @@ public class EMFCompareEditor extends EditorPart {
 	@Override
 	public boolean isSaveAsAllowed() {
 		return true;
-	}
-
-	public IEditorInput getInput() {
-		return this.input;
 	}
 
 	public void fireDirtyPropertyChange(boolean diry) {
@@ -225,8 +254,8 @@ public class EMFCompareEditor extends EditorPart {
 	 * 
 	 * @return structuralView instance
 	 */
-	public StructuralDiffPane getStructuralView() {
-		return structuralView;
+	public StructuralDiffPane getStructDiffViewPane() {
+		return structDifferencePane;
 	}
 
 	// FIXME ! THINK TO ADD IT TO COMPARE CONFIGURATION
@@ -236,7 +265,93 @@ public class EMFCompareEditor extends EditorPart {
 	 * 
 	 * @return {@link DiffViewPane}
 	 */
-	public DiffViewPane getVisualisationDiffView() {
-		return visualisationDiffView;
+	public DiffViewPane getDifferenceViewPane() {
+		return diffViewPane;
 	}
+
+	/**
+	 * Group Differences by their kinf of change.
+	 * 
+	 * @param diff
+	 *            The Differences group provider of the
+	 */
+	public void group(DifferenceGroupProvider diff) {
+		structDifferencePane.getTreeViewer().setInput(diff);
+		structDifferencePane.getTreeViewer().refresh();
+	}
+
+	/**
+	 * Returns the comparison displayed by this editor.
+	 * 
+	 * @return The comparison displayed by this editor.
+	 */
+	private Comparison getComparison() {
+		return ((EMFCompareInput)getEditorInput()).getComparison();
+	}
+
+	/**
+	 * Get the differenceFilter.
+	 * 
+	 * @return the differenceFilter
+	 */
+	public DifferenceFilter getDifferenceFilter() {
+		return differenceFilter;
+	}
+
+	/**
+	 * Selects the next or previous DiffElement as compared to the currently selected one.
+	 * 
+	 * @param next
+	 *            True if we seek the next DiffElement, False for the previous.
+	 */
+	public void navigate(boolean next) {
+		List<Diff> differences = getComparison().getDifferences();
+		if (differences.isEmpty()) {
+			return;
+		}
+		Diff found = findNext(next, differences, currentDifference);
+		setStructureSelection(found);
+		while (currentDifference != found) {
+			found = findNext(next, differences, found);
+			setStructureSelection(found);
+		}
+	}
+
+	/**
+	 * @param next
+	 * @param differences
+	 */
+	private Diff findNext(boolean next, List<Diff> differences, Diff currentDiff) {
+		final Diff diff;
+		ListIterator<Diff> iterator = differences.listIterator();
+		if (currentDiff == null) {
+			diff = iterator.next();
+		} else {
+			while (iterator.hasNext()) {
+				Diff difference = iterator.next();
+				if (difference.equals(currentDiff)) {
+					break;
+				}
+			}
+			if (next) {
+				if (iterator.hasNext()) {
+					diff = iterator.next();
+				} else {
+					diff = differences.get(0);
+				}
+			} else {
+				if (iterator.hasPrevious()) {
+					diff = iterator.previous();
+				} else {
+					diff = differences.get(differences.size() - 1);
+				}
+			}
+		}
+		return diff;
+	}
+
+	private void setStructureSelection(Diff difference) {
+		structDifferencePane.getTreeViewer().setSelection(new StructuredSelection(difference));
+	}
+
 }

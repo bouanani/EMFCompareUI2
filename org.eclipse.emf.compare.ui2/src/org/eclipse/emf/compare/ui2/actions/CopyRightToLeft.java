@@ -55,7 +55,7 @@ public class CopyRightToLeft extends AbstractEMFCompareAction {
 		editorView.fireDirtyPropertyChange(true);
 		editorView.setLeftDirty(true);
 		// FIXME !
-		((EMFCompareEditor)editorView).getStructuralView().getStrucDifftreeViewer().refresh();
+		((EMFCompareEditor)editorView).getStructDiffViewPane().getTreeViewer().refresh();
 
 	}
 

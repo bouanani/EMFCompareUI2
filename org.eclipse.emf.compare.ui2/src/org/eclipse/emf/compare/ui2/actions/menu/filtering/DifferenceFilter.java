@@ -21,35 +21,25 @@ import org.eclipse.emf.compare.Match;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 
 /**
  * An instance of this class intends to filter differences between elements.
  * 
  * @author <a href="mailto:maher.bouanani@obeo.fr">Bouanani Maher</a>
  */
-public class CompareDiffFilter extends ViewerFilter {
+public class DifferenceFilter extends ViewerFilter {
 
 	/**
 	 * The differenceKind on which the filter should be activated.
 	 */
-	protected List<Object> differenceKind;
+	private List<DifferenceKind> differenceKind = Lists.newArrayList();
 
 	/**
-	 * The TreeViewer on which the filter will be applyed.
+	 * The List of the TreeViewer on which the filter will be applyed.
 	 */
-	protected TreeViewer viewer;
-
-	/**
-	 * Constructor.
-	 * 
-	 * @param treeViewer
-	 *            the viewer.
-	 */
-	public CompareDiffFilter(TreeViewer treeViewer) {
-		differenceKind = Lists.newArrayList();
-		viewer = treeViewer;
-
-	}
+	private List<TreeViewer> viewers = Lists.newArrayList();
 
 	/**
 	 * {@inheritDoc}.
@@ -103,9 +93,11 @@ public class CompareDiffFilter extends ViewerFilter {
 	 * @param diffKind
 	 *            {@link DifferenceKind}
 	 */
-	public void addFilter(Object diffKind) {
+	public void addFilter(DifferenceKind diffKind) {
 		differenceKind.add(diffKind);
-		viewer.refresh();
+		for (TreeViewer viewer : viewers) {
+			viewer.refresh();
+		}
 	}
 
 	/**
@@ -114,9 +106,39 @@ public class CompareDiffFilter extends ViewerFilter {
 	 * @param diffKind
 	 *            {@link DifferenceKind}
 	 */
-	public void removeFilter(Object diffKind) {
+	public void removeFilter(DifferenceKind diffKind) {
 		differenceKind.remove(diffKind);
-		viewer.refresh();
+		for (TreeViewer viewer : viewers) {
+			viewer.refresh();
+		}
 	}
 
+	/**
+	 * Install this filter on the given viewer.
+	 * 
+	 * @param viewer
+	 *            the viewer on which the filter will be installed
+	 */
+	public void install(final TreeViewer viewer) {
+		viewer.addFilter(this);
+		viewer.getTree().addDisposeListener(new DisposeListener() {
+
+			public void widgetDisposed(DisposeEvent e) {
+				uninstall(viewer);
+			}
+		});
+		viewers.add(viewer);
+	}
+
+	/**
+	 * Uninstall this filter on the given viewer
+	 * 
+	 * @param viewer
+	 *            the viewer on which the filter will be uninstalled
+	 */
+	public void uninstall(TreeViewer viewer) {
+		viewer.removeFilter(this);
+		viewers.remove(viewer);
+
+	}
 }

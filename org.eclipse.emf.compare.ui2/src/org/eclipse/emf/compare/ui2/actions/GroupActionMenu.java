@@ -10,9 +10,11 @@
  *******************************************************************************/
 package org.eclipse.emf.compare.ui2.actions;
 
+import org.eclipse.emf.compare.Comparison;
 import org.eclipse.emf.compare.ui2.actions.menu.grouping.DefaultGrouping;
-import org.eclipse.emf.compare.ui2.actions.menu.grouping.KindofChange;
+import org.eclipse.emf.compare.ui2.actions.menu.grouping.GroupByKindAction;
 import org.eclipse.emf.compare.ui2.actions.menu.grouping.MetaModelElementsChange;
+import org.eclipse.emf.compare.ui2.viewers.EMFCompareEditor;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
@@ -25,34 +27,45 @@ import org.eclipse.wb.swt.ResourceManager;
  * 
  * @author <a href="mailto:maher.bouanani@obeo.fr">Bouanani Maher</a>
  */
-public class GroupAction extends AbstractEMFCompareAction implements IMenuCreator {
+public class GroupActionMenu extends AbstractEMFCompareAction implements IMenuCreator {
 
 	/**
 	 * Menu Manager that will contain the elemnts of the menu proposed by the Action.
 	 */
-	protected MenuManager menuManager;
+	private MenuManager menuManager;
+
+	/**
+	 * The Editor on which this action appears.
+	 */
+	private final EMFCompareEditor editor;
+
+	/**
+	 * The comparison object provided by the comparison engine and displayed by the {@link #editor}.
+	 */
+	private final Comparison comparison;
 
 	/**
 	 * Group Action Constructor.
 	 */
-	public GroupAction() {
+	public GroupActionMenu(EMFCompareEditor editor, Comparison comparison) {
 		super(IAction.AS_DROP_DOWN_MENU);
 		setToolTipText("Groups");
 		setImageDescriptor(ResourceManager.getPluginImageDescriptor("org.eclipse.emf.compare.ui.2",
 				"icons/full/toolb16/prefshelp.gif"));
 		setMenuCreator(this);
-		menuManager = new MenuManager();
-		addActions();
-
+		this.menuManager = new MenuManager();
+		this.editor = editor;
+		this.comparison = comparison;
+		createActions(menuManager);
 	}
 
 	/**
-	 * Adding Action to menus.
+	 * Create the grouping action in the given menu.
 	 */
-	public void addActions() {
-		menuManager.add(new DefaultGrouping());
-		menuManager.add(new KindofChange());
-		menuManager.add(new MetaModelElementsChange());
+	public void createActions(MenuManager menu) {
+		menu.add(new DefaultGrouping());
+		menu.add(new GroupByKindAction(getEditor(), getComparison()));
+		menu.add(new MetaModelElementsChange());
 	}
 
 	/**
@@ -81,4 +94,23 @@ public class GroupAction extends AbstractEMFCompareAction implements IMenuCreato
 	public Menu getMenu(Menu parent) {
 		return menuManager.getMenu();
 	}
+
+	/**
+	 * Get the Comparison.
+	 * 
+	 * @return The {@link #comparison}
+	 */
+	private Comparison getComparison() {
+		return comparison;
+	}
+
+	/**
+	 * Get the Editor.
+	 * 
+	 * @return The {@link #editor}
+	 */
+	private EMFCompareEditor getEditor() {
+		return editor;
+	}
+
 }

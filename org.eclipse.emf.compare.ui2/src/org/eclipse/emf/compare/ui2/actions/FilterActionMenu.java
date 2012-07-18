@@ -11,7 +11,8 @@
 package org.eclipse.emf.compare.ui2.actions;
 
 import org.eclipse.emf.compare.DifferenceKind;
-import org.eclipse.emf.compare.ui2.actions.menu.filtering.FilterActionType;
+import org.eclipse.emf.compare.ui2.actions.menu.filtering.DifferenceFilter;
+import org.eclipse.emf.compare.ui2.actions.menu.filtering.FilterAction;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
@@ -25,37 +26,42 @@ import org.eclipse.wb.swt.ResourceManager;
  * 
  * @author <a href="mailto:maher.bouanani@obeo.fr">Bouanani Maher</a>
  */
-public class FilterAction extends AbstractEMFCompareAction implements IMenuCreator {
+public class FilterActionMenu extends AbstractEMFCompareAction implements IMenuCreator {
+
+	/**
+	 * The Filter that will be applyed by the action.
+	 */
+	private final DifferenceFilter differenceFilter;
 
 	/**
 	 * Menu Manager that will contain the elemnts of the menu proposed by the Action.
 	 */
-	protected MenuManager menuManager;
+	private MenuManager menuManager;
 
 	/**
 	 * Filter Action constructor.
 	 * 
 	 * @param style
 	 */
-	public FilterAction() {
+	public FilterActionMenu(DifferenceFilter differenceFilter) {
 		super(IAction.AS_DROP_DOWN_MENU);
+		this.menuManager = new MenuManager();
+		this.differenceFilter = differenceFilter;
+		setMenuCreator(this);
 		setToolTipText("Filters");
 		setImageDescriptor(ResourceManager.getPluginImageDescriptor("org.eclipse.emf.compare.ui.2",
 				"icons/full/toolb16/filter.gif"));
-		setMenuCreator(this);
-		menuManager = new MenuManager();
-		addActions();
-
+		createActions(menuManager);
 	}
 
 	/**
 	 * Adding Action to menus.
 	 */
-	public void addActions() {
-		menuManager.add(new FilterActionType(DifferenceKind.CHANGE));
-		menuManager.add(new FilterActionType(DifferenceKind.ADD));
-		menuManager.add(new FilterActionType(DifferenceKind.DELETE));
-		menuManager.add(new FilterActionType(DifferenceKind.MOVE));
+	public void createActions(MenuManager menu) {
+		menu.add(new FilterAction("Changed Elements", DifferenceKind.CHANGE, differenceFilter));
+		menu.add(new FilterAction("Added Elements", DifferenceKind.ADD, differenceFilter));
+		menu.add(new FilterAction("Removed Elements", DifferenceKind.DELETE, differenceFilter));
+		menu.add(new FilterAction("Moved Elements", DifferenceKind.MOVE, differenceFilter));
 	}
 
 	/**

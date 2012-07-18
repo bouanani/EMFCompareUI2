@@ -13,14 +13,13 @@ package org.eclipse.emf.compare.ui2.viewers;
 import com.google.common.collect.Lists;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.eclipse.emf.common.notify.AdapterFactory;
-import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.compare.Comparison;
 import org.eclipse.emf.compare.Match;
-import org.eclipse.emf.compare.ui2.actions.menu.filtering.CompareDiffFilter;
-import org.eclipse.emf.compare.ui2.input.EMFCompareInput;
 import org.eclipse.emf.compare.ui2.providers.CompareAdapterFactoryProviderSpec;
-import org.eclipse.emf.compare.ui2.providers.SelectedItemContentProvider;
+import org.eclipse.emf.compare.ui2.providers.StructureDiffPaneContentProvider;
 import org.eclipse.emf.edit.provider.ComposedAdapterFactory;
 import org.eclipse.emf.edit.ui.provider.AdapterFactoryLabelProvider;
 import org.eclipse.jface.viewers.TreeViewer;
@@ -29,8 +28,6 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Tree;
-import org.eclipse.ui.IEditorInput;
 
 /**
  * <p>
@@ -47,29 +44,19 @@ import org.eclipse.ui.IEditorInput;
 public class StructuralDiffPane extends Composite {
 
 	/**
-	 * {@link MainToolBar} .
+	 * The Editor on which this action appears.
 	 */
-	private MainToolBar toolBar;
+	private final EMFCompareEditor editor;
+
+	/**
+	 * The comparison object provided by the comparison engine and displayed by the {@link #editor}.
+	 */
+	private final Comparison comparison;
 
 	/**
 	 * {@link TreeViewer} .
 	 */
-	private TreeViewer diffStructtreeViewer;
-
-	/**
-	 * Tree Object of the StructDiffTreeViewer.
-	 */
-	private Tree structTree;
-
-	/**
-	 * The Matched elements during the comparison.
-	 */
-	private EList<Match> matches;
-
-	/**
-	 * filer .
-	 */
-	private CompareDiffFilter filter;
+	private TreeViewer differenceTreeViewer;
 
 	/**
 	 * Create the composite.
@@ -79,71 +66,70 @@ public class StructuralDiffPane extends Composite {
 	 * @param style
 	 *            SWT Style
 	 */
-	public StructuralDiffPane(Composite parent, int style) {
-		super(parent, style);
+	public StructuralDiffPane(Composite parent, EMFCompareEditor editor, Comparison comparison) {
+		super(parent, SWT.NONE);
+		this.editor = editor;
+		this.comparison = comparison;
 		setLayout(new FormLayout());
-		/**
+		createControl();
+	}
+
+	private void createControl() {
+		/*
 		 * Main Tool Bar
 		 */
-		toolBar = new MainToolBar(this, SWT.NONE);
+		MainToolBar toolBar = new MainToolBar(this, getEditor(), getComparison());
 		FormData fdmainToolBar = new FormData();
 		fdmainToolBar.top = new FormAttachment(0);
 		fdmainToolBar.left = new FormAttachment(0);
-		toolBar.setLayoutData(fdmainToolBar);
-		diffStructtreeViewer = new TreeViewer(this, SWT.BORDER);
-		structTree = diffStructtreeViewer.getTree();
 		fdmainToolBar.right = new FormAttachment(100);
-		FormData fdtree = new FormData();
-		fdtree.top = new FormAttachment(0, 24);
-		fdtree.bottom = new FormAttachment(100, 0);
-		fdtree.left = new FormAttachment(0);
-		fdtree.right = new FormAttachment(100);
-		structTree.setLayoutData(fdtree);
-	}
+		toolBar.setLayoutData(fdmainToolBar);
 
-	@Override
-	protected void checkSubclass() {
+		differenceTreeViewer = new TreeViewer(this, SWT.BORDER);
+		FormData fdtree = new FormData();
+		fdtree.top = new FormAttachment(toolBar, 6);
+		fdtree.right = new FormAttachment(100);
+		fdtree.bottom = new FormAttachment(100);
+		fdtree.left = new FormAttachment(toolBar, 0, SWT.LEFT);
+		differenceTreeViewer.getTree().setLayoutData(fdtree);
+
+		List<Match> matches = getComparison().getMatches();
+		Collection<AdapterFactory> factories = Lists.newArrayList();
+		CompareAdapterFactoryProviderSpec compareFactory = new CompareAdapterFactoryProviderSpec();
+		factories.add(compareFactory);
+		factories.add(new ComposedAdapterFactory(ComposedAdapterFactory.Descriptor.Registry.INSTANCE));
+		ComposedAdapterFactory composedAdapterFactory = new ComposedAdapterFactory(factories);
+
+		differenceTreeViewer.setContentProvider(new StructureDiffPaneContentProvider(composedAdapterFactory));
+		differenceTreeViewer.setLabelProvider(new AdapterFactoryLabelProvider(composedAdapterFactory));
+		differenceTreeViewer.setInput(matches);
 	}
 
 	/**
-	 * Set InputProvider - Still not yet fixed - .
+	 * Get the editor.
 	 * 
-	 * @param input
-	 *            EditorInput
+	 * @return the editor
 	 */
-	public void setInputProvider(IEditorInput input) {
-		if (((EMFCompareInput)input).getComparison() != null) {
-			matches = ((EMFCompareInput)input).getComparison().getMatches();
-			diffStructtreeViewer.setContentProvider(new SelectedItemContentProvider(
-					new ComposedAdapterFactory(ComposedAdapterFactory.Descriptor.Registry.INSTANCE)));
-
-			Collection<AdapterFactory> factories = Lists.newArrayList();
-			CompareAdapterFactoryProviderSpec myFactory = new CompareAdapterFactoryProviderSpec();
-			factories.add(myFactory);
-			factories.add(new ComposedAdapterFactory(ComposedAdapterFactory.Descriptor.Registry.INSTANCE));
-			diffStructtreeViewer.setLabelProvider(new AdapterFactoryLabelProvider(new ComposedAdapterFactory(
-					factories)));
-			diffStructtreeViewer.setInput(matches);
-			filter = new CompareDiffFilter(diffStructtreeViewer);
-			diffStructtreeViewer.addFilter(filter);
-
-		}
+	private EMFCompareEditor getEditor() {
+		return editor;
 	}
 
-	public MainToolBar getTooBar() {
-		return toolBar;
+	/**
+	 * Get the comparison.
+	 * 
+	 * @return the comparison
+	 */
+	private Comparison getComparison() {
+		return comparison;
 	}
 
-	public void setTooBar(MainToolBar tooBar) {
-		this.toolBar = tooBar;
-	}
-
-	public TreeViewer getStrucDifftreeViewer() {
-		return diffStructtreeViewer;
-	}
-
-	public CompareDiffFilter getFilter() {
-		return filter;
+	/**
+	 * Get the differenceTreeViewer.
+	 * 
+	 * @return the differenceTreeViewer
+	 */
+	public TreeViewer getTreeViewer() {
+		return differenceTreeViewer;
 	}
 
 }

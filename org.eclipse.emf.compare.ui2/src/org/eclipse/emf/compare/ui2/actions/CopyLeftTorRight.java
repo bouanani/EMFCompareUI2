@@ -55,7 +55,7 @@ public class CopyLeftTorRight extends AbstractEMFCompareAction {
 		editorView.fireDirtyPropertyChange(true);
 		editorView.setRightDirty(true);
 		// FIXME !
-		((EMFCompareEditor)editorView).getStructuralView().getStrucDifftreeViewer().refresh();
+		((EMFCompareEditor)editorView).getStructDiffViewPane().getTreeViewer().refresh();
 		// setisLeftIsDirty = true
 	}
 

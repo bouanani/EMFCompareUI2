@@ -11,8 +11,11 @@
 package org.eclipse.emf.compare.ui2.actions.menu.grouping;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.emf.compare.Diff;
 import org.eclipse.emf.compare.DifferenceKind;
@@ -22,33 +25,12 @@ import org.eclipse.emf.compare.DifferenceKind;
  * 
  * @author <a href="mailto:maher.bouanani@obeo.fr">Bouanani Maher</a>
  */
-public class DiffKindGroups {
+public class DiffKindGroups implements DifferenceGroupProvider {
 
 	/**
 	 * List of Difference Groups.
 	 */
-	protected List<DifferenceGroupElement> differenceGroups;
-
-	/**
-	 * Constructor.
-	 */
-	public DiffKindGroups() {
-		differenceGroups = Lists.newArrayList();
-	}
-
-	/**
-	 * Add a difference Group Element to the list of groups
-	 * 
-	 * @param name
-	 *            {@link String} Name of the group
-	 * @param kind
-	 *            {@link DifferenceKind} Kkind of the group
-	 */
-	public void addDifferenceGroupElement(String name, DifferenceKind kind) {
-		DifferenceGroupElement diffGroupElement = new DifferenceGroupElement(name);
-		diffGroupElement.setGroupKind(kind);
-		differenceGroups.add(diffGroupElement);
-	}
+	private Map<DifferenceKind, DifferenceGroupElement> differenceGroups = Maps.newHashMap();
 
 	/**
 	 * Add a Difference to it's convinient Group
@@ -56,11 +38,23 @@ public class DiffKindGroups {
 	 * @param diff
 	 *            {@link Diff} Difference Element
 	 */
-	public void addDifferenceElement(Diff diff) {
-		for (DifferenceGroupElement groupElement : differenceGroups) {
-			if (groupElement.getGroupKind().equals(diff.getKind())) {
-				groupElement.addElement(diff);
-			}
+	public void add(Diff diff) {
+		DifferenceGroupElement differenceElement = differenceGroups.get(diff.getKind());
+		if (differenceElement == null) {
+			differenceElement = new DifferenceGroupElement();
+			differenceGroups.put(diff.getKind(), differenceElement);
+		}
+		differenceElement.add(diff);
+	}
+
+	/**
+	 * Add All differences into the Difference Group
+	 * 
+	 * @param differences
+	 */
+	public void addAll(Collection<Diff> differences) {
+		for (Diff diff : differences) {
+			add(diff);
 		}
 	}
 
@@ -69,102 +63,80 @@ public class DiffKindGroups {
 	 * 
 	 * @return a List<{@link DifferenceGroupElement}>
 	 */
-	public List<DifferenceGroupElement> getElements() {
-		return differenceGroups;
+	public Collection<? extends DifferenceGroup> getElements() {
+		return differenceGroups.values();
 	}
 
-	/**
-	 * Return the Difference of a given Difference Group Element
-	 * 
-	 * @param diffGroup
-	 *            the Given Difference Group {@link DifferenceGroupElement}
-	 * @return a List<{@link Diff}>
-	 */
-	public List<Diff> getGroupElementsChildren(DifferenceGroupElement diffGroup) {
-		int index = differenceGroups.indexOf(diffGroup);
-		return differenceGroups.get(index).getElements();
-	}
+	private class DifferenceGroupElement implements DifferenceGroup {
 
-	/**
-	 * Check out if the kind of difference already exists or not
-	 * 
-	 * @param difference
-	 *            {@link Diff}
-	 * @return true if the kind exists and false if not
-	 */
-	public boolean containKind(Diff difference) {
-		boolean result = false;
-		for (DifferenceGroupElement groupElement : differenceGroups) {
-			if (groupElement.getGroupKind().equals(difference.getKind())) {
-				result = true;
-				break;
-			} else {
-				result = false;
-				continue;
-			}
-		}
-		return result;
-	}
-
-	public class DifferenceGroupElement {
-		/**
-		 * The Group name.
-		 */
-		String groupName;
-
-		/**
-		 * The of all the differences inside this group.
-		 */
-		DifferenceKind groupKind;
+		private String name;
 
 		/**
 		 * List of differences in the group.
 		 */
-		List<Diff> differences;
+		private List<Diff> differences = Lists.newArrayList();
 
-		DifferenceGroupElement(String name) {
-			groupName = name;
-			differences = Lists.newArrayList();
-
-		}
-
-		public List<Diff> getElements() {
+		/**
+		 * Get the list of all differences in the group.
+		 * 
+		 * @return The list of all differences in the group.
+		 */
+		public List<Diff> getDifferences() {
 			return differences;
 		}
 
-		private boolean addElement(Diff element) {
-			return differences.add(element);
-		}
-
-		public String getGroupName() {
-			return groupName;
-		}
-
-		public void setGroupName(String name) {
-			groupName = name;
-		}
-
 		/**
-		 * Get The Kind of the Group
+		 * Add diff to this group.
 		 * 
-		 * @return {@link DifferenceKind}
+		 * @param element
 		 */
-		private DifferenceKind getGroupKind() {
-			return groupKind;
+		private void add(Diff element) {
+			if (name == null) {
+				name = computeName(element.getKind());
+			}
+			differences.add(element);
 		}
 
 		/**
-		 * Set the Kind of the Group.
+		 * Compute the name of the group according to the kind of the given diff.
 		 * 
 		 * @param kind
+		 *            {@link DifferenceKind}
+		 * @return the name to be used for this group.
 		 */
-		private void setGroupKind(DifferenceKind kind) {
-			groupKind = kind;
+		private String computeName(DifferenceKind kind) {
+			final String result;
+			switch (kind) {
+				case ADD:
+					result = "added";
+					break;
+				case CHANGE:
+					result = "changed";
+					break;
+				case MOVE:
+					result = "moved";
+					break;
+				case DELETE:
+					result = "deleted";
+					break;
+				default:
+					result = "others";
+			}
+			return result;
 		}
 
+		/**
+		 * {@inheritDoc}
+		 * 
+		 * @see java.lang.Object#toString()
+		 */
 		@Override
 		public String toString() {
-			return groupName;
+			if (name == null) {
+				return "others";
+			} else {
+				return name;
+			}
 		}
 	}
 }
