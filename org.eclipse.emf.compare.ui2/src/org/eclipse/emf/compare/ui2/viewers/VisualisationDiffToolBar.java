@@ -17,6 +17,7 @@ import org.eclipse.emf.compare.ui2.actions.CopyRightToLeft;
 import org.eclipse.emf.compare.ui2.actions.NavigateAction;
 import org.eclipse.emf.compare.ui2.actions.ShowHideAncestor;
 import org.eclipse.emf.compare.ui2.utilities.EMFCompareConfiguration;
+import org.eclipse.emf.compare.ui2.utilities.Utilities;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.swt.SWT;
@@ -42,9 +43,54 @@ import org.eclipse.wb.swt.ResourceManager;
 public class VisualisationDiffToolBar extends Composite {
 
 	/**
-	 * The Editor on which this toolBar will appear.
+	 * Revisualization Type label.
 	 */
-	private final EMFCompareEditor editor;
+	private ToolItem visualizationType;
+
+	/**
+	 * Copy Change from right to left.
+	 * 
+	 * @see CopyRightToLeft
+	 */
+	private CopyRightToLeft copyRightToLeft;
+
+	/**
+	 * Copy Change from left to right.
+	 * 
+	 * @see CopyLeftToRight
+	 */
+	private CopyLeftTorRight copyLeftTorRight;
+
+	/**
+	 * Copy All Changes to the right.
+	 * 
+	 * @see CopyAlltoLeft
+	 */
+	private CopyAlltoLeft copyAlltoLeft;
+
+	/**
+	 * Copy All Changes to the Left.
+	 * 
+	 * @see CopyAlltoLeft
+	 */
+	private CopyAlltoRight copyAlltoRight;
+
+	/**
+	 * Next change actions. {@link NavigateAction}
+	 */
+	private NavigateAction nextChange;
+
+	/**
+	 * previous change actions. {@link NavigateAction}
+	 */
+	private NavigateAction previousChange;
+
+	/**
+	 * Hide/Show Ancestor Pane.
+	 * 
+	 * @see ShowHideAncestor
+	 */
+	private ShowHideAncestor showHideAncestor;
 
 	/**
 	 * Create the composite.
@@ -54,12 +100,11 @@ public class VisualisationDiffToolBar extends Composite {
 	 * @param style
 	 *            the style of widget to construct
 	 */
-	public VisualisationDiffToolBar(Composite parent, int style, EMFCompareEditor editor) {
+	public VisualisationDiffToolBar(Composite parent, int style) {
 		super(parent, style);
-		this.editor = editor;
+		createActions();
 		setLayout(new FormLayout());
-
-		/*
+		/**
 		 * Left Tool Bar
 		 */
 		Composite leftToolBarComposite = new Composite(this, SWT.NONE);
@@ -72,13 +117,14 @@ public class VisualisationDiffToolBar extends Composite {
 		FormData fdleftToolBar = new FormData();
 		fdleftToolBar.top = new FormAttachment(0);
 		leftToolBar.setLayoutData(fdleftToolBar);
-		ToolItem visualizationType = new ToolItem(leftToolBar, SWT.NONE);
+		visualizationType = new ToolItem(leftToolBar, SWT.NONE);
 		visualizationType.setImage(ResourceManager.getPluginImage("org.eclipse.emf.compare.ui.2",
 				"iconsMainTBar/differencesIcon.gif"));
 		visualizationType.setText("Visualizatin of Structural Differences");
+		// lblNewLabel.setImage(ResourceManager.getPluginImage("org.eclipse.emf.compare.ui.2",
+		// "icons/next_nav_into.gif"));
 		leftToolBar.update();
-
-		/*
+		/**
 		 * RighToolBar
 		 */
 		ToolBar righToolBar = new ToolBar(this, SWT.FLAT | SWT.RIGHT);
@@ -88,7 +134,13 @@ public class VisualisationDiffToolBar extends Composite {
 		righToolBar.setLayoutData(fdRighToolBar);
 		ToolBarManager righToolBarManager = new ToolBarManager(righToolBar);
 		createAncestorPaneManagerAction(righToolBarManager, EMFCompareConfiguration.fThreeWay);
-		createActions(righToolBarManager);
+		righToolBarManager.add(copyAlltoRight);
+		righToolBarManager.add(copyAlltoLeft);
+		righToolBarManager.add(copyLeftTorRight);
+		righToolBarManager.add(copyRightToLeft);
+		righToolBarManager.add(new Separator());
+		righToolBarManager.add(nextChange);
+		righToolBarManager.add(previousChange);
 		righToolBar.update();
 		righToolBarManager.update(true);
 	}
@@ -96,14 +148,15 @@ public class VisualisationDiffToolBar extends Composite {
 	/**
 	 * Adding Actions to the tool Bar.
 	 */
-	private void createActions(ToolBarManager toolBarManager) {
-		toolBarManager.add(new CopyAlltoRight());
-		toolBarManager.add(new CopyAlltoLeft());
-		toolBarManager.add(new CopyLeftTorRight());
-		toolBarManager.add(new CopyRightToLeft());
-		toolBarManager.add(new Separator());
-		toolBarManager.add(new NavigateAction("Select Next Change", getEditor(), true));
-		toolBarManager.add(new NavigateAction("Select Previous Change", getEditor(), false));
+	private void createActions() {
+		nextChange = new NavigateAction("Next Change", (EMFCompareEditor)Utilities.getEditorPart(), true);
+		previousChange = new NavigateAction("Previous Change", (EMFCompareEditor)Utilities.getEditorPart(),
+				false);
+		copyRightToLeft = new CopyRightToLeft();
+		copyLeftTorRight = new CopyLeftTorRight();
+		copyAlltoLeft = new CopyAlltoLeft();
+		copyAlltoRight = new CopyAlltoRight();
+		showHideAncestor = new ShowHideAncestor();
 	}
 
 	/**
@@ -116,20 +169,42 @@ public class VisualisationDiffToolBar extends Composite {
 	 */
 	private void createAncestorPaneManagerAction(ToolBarManager toolBarManager, boolean ok) {
 		if (ok) {
-			ShowHideAncestor showHideAncestor = new ShowHideAncestor();
 			toolBarManager.add(showHideAncestor);
 			Separator separator = new Separator();
 			toolBarManager.add(separator);
 		}
 	}
 
-	/**
-	 * Get the editor.
-	 * 
-	 * @return the editor
-	 */
-	public EMFCompareEditor getEditor() {
-		return editor;
+	@Override
+	protected void checkSubclass() {
+		// Disable the check that prevents subclassing of SWT components
 	}
 
+	public NavigateAction getPreviousChange() {
+		return previousChange;
+	}
+
+	public NavigateAction getNextChange() {
+		return nextChange;
+	}
+
+	public CopyRightToLeft getCopyRightToLeft() {
+		return copyRightToLeft;
+	}
+
+	public CopyLeftTorRight getCopyLeftTorRight() {
+		return copyLeftTorRight;
+	}
+
+	public CopyAlltoLeft getCopyAlltoLeft() {
+		return copyAlltoLeft;
+	}
+
+	public CopyAlltoRight getCopyAlltoRight() {
+		return copyAlltoRight;
+	}
+
+	public ShowHideAncestor getShowHideAncestor() {
+		return showHideAncestor;
+	}
 }

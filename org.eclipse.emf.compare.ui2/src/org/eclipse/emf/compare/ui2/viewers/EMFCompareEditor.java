@@ -153,7 +153,7 @@ public class EMFCompareEditor extends EditorPart {
 	 *            the difference view pane container.
 	 */
 	public void createDifferenceViewPane(SashForm diffPaneContainer) {
-		diffViewPane = new DiffViewPane(diffPaneContainer, SWT.NONE);
+		diffViewPane = new DiffViewPane(diffPaneContainer, SWT.NONE, this);
 		diffViewPane.setInputProvider(getEditorInput());
 	}
 
